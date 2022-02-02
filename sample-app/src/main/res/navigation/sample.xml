@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/sample"
+    app:startDestination="@id/tab_home">
+
+    <navigation
+        android:id="@+id/tab_home"
+        app:startDestination="@id/frag_home">
+        <fragment
+            android:id="@+id/frag_home"
+            android:name="eu.rekisoft.android.navbug.HomeFragment"
+            tools:layout="@layout/fragment_home">
+            <action
+                android:id="@+id/cause_bug"
+                app:destination="@id/frag_hint"/>
+            <action
+                android:id="@+id/causeCrash"
+                app:destination="@id/frag_book">
+                <argument
+                    android:name="name"
+                    app:argType="string"/>
+            </action>
+        </fragment>
+
+        <fragment
+            android:id="@+id/frag_hint"
+            android:name="eu.rekisoft.android.navbug.HintFragment"
+            android:label="Hint"
+            tools:layout="@layout/fragment_hint"/>
+    </navigation>
+
+    <navigation
+        android:id="@+id/tab_books"
+        app:startDestination="@id/frag_shelf">
+        <fragment
+            android:id="@+id/frag_shelf"
+            android:name="eu.rekisoft.android.navbug.ShelfFragment"
+            android:label="Shelf Fragment"
+            tools:layout="@layout/fragment_shelf">
+            <action
+                android:id="@+id/open_book"
+                app:destination="@id/frag_book">
+                <argument
+                    android:name="name"
+                    app:argType="string"/>
+            </action>
+        </fragment>
+
+        <fragment
+            android:id="@+id/frag_book"
+            android:name="eu.rekisoft.android.navbug.BookFragment"
+            android:label="Book Fragment"
+            tools:layout="@layout/fragment_book">
+            <argument
+                android:name="name"
+                app:argType="string"/>
+        </fragment>
+    </navigation>
+</navigation>
