@@ -1,0 +1,72 @@
+plugins {
+    id 'maven-publish'
+    id 'java-gradle-plugin'
+    id 'com.gradle.plugin-publish' version '0.10.0'
+    id "org.gradle.kotlin.kotlin-dsl" version "2.2.0"
+}
+
+apply plugin: 'kotlin'
+
+group 'eu.rekisoft.android'
+version rootProject.ext.versions.gradle_plugin
+
+publishing {
+    publications {
+        maven(MavenPublication) {
+            groupId 'eu.rekisoft.android'
+            artifactId 'deeplink-builder'
+            version rootProject.ext.versions.gradle_plugin
+
+            from components.java
+        }
+    }
+}
+
+configurations {
+    embed
+}
+
+dependencies {
+    implementation(gradleApi())
+    implementation(localGroovy())
+    api "org.jetbrains.kotlin:kotlin-stdlib"
+    compileOnly 'com.android.tools.build:gradle-api:7.1.0'
+}
+
+pluginBundle {
+    website = 'https://todo'
+    vcsUrl = 'https://todo'
+
+    plugins {
+        konversation {
+            displayName = 'TODO'
+            description = 'TODO'
+            tags = ['todo']
+        }
+    }
+}
+
+gradlePlugin {
+    plugins {
+        konversation {
+            id = 'eu.rekisoft.android.deeplink-builder'
+            description = 'TODO'
+            implementationClass = 'eu.rekisoft.android.DeeplinkBuilderPlugin'
+        }
+    }
+}
+
+repositories {
+    mavenCentral()
+    mavenLocal()
+    google()
+}
+
+sourceSets {
+    main.java.srcDirs += 'src/main/kotlin/'
+}
+
+jar {
+    dependsOn configurations.embed
+    from { configurations.embed.collect { zipTree(it) } }
+}

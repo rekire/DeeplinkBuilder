@@ -1,0 +1,10 @@
+.gradle
+.idea/*
+local.properties
+build
+out
+*.iml
+travis_rsa
+publish
+cli-integrations/chocolatey/tools/*.jar
+cli-integrations/chocolatey/*.nupkg
