@@ -4,43 +4,51 @@ import com.android.build.api.dsl.ApplicationExtension
 import org.gradle.api.DefaultTask
 import org.gradle.api.Plugin
 import org.gradle.api.Project
-import org.gradle.api.plugins.JavaPluginConvention
 import org.gradle.api.tasks.*
 import org.gradle.internal.operations.DefaultBuildOperationIdFactory
 import org.gradle.internal.time.Time
 import org.gradle.kotlin.dsl.the
-import org.gradle.kotlin.dsl.withConvention
 import org.gradle.tooling.internal.consumer.SynchronizedLogging
 import org.slf4j.LoggerFactory
 import java.io.File
 
 open class DeeplinkBuilderPlugin : Plugin<Project> {
+    @Suppress("UnstableApiUsage")
     override fun apply(project: Project): Unit = with(project) {
 
 
-        val generate = tasks.register("generateDeeplinks", GenerateTask::class.java) {
-            val androidSourceSets = project.the<ApplicationExtension>().sourceSets
-            val inputDirs = mutableListOf<File>()
-            androidSourceSets.forEach { sourceSet ->
-                sourceSet.resources.srcDirs("build/deeplink-builder/res/${sourceSet.name}/")
-                inputDirs += File(projectDir, "src/${sourceSet.name}/res/navigation")
-            }
+        pluginManager.withPlugin("com.android.application") {
+            val app = project.the<ApplicationExtension>()
+            val buildTypes = app.buildTypes.map { it.name }
 
-            inputFiles += inputDirs.listFilesByExtension("xml")
-            outputDirectories += androidSourceSets.map {
-                File(
-                    buildDir,
-                    "deeplink-builder/res/${it.name}"
-                )
-            }
+            app
+                .sourceSets
+                .map { it.name to File(projectDir, "src/${it.name}/res/navigation") }
+                .filter { it.second.exists() }
+                .forEach { (name, path) ->
+                    val task = tasks.register("generate${name.capitalize()}Deeplinks", GenerateTask::class.java) {
+                        val androidSourceSets = project.the<ApplicationExtension>().sourceSets
+                        val inputDirs = mutableListOf<File>()
+                        androidSourceSets.forEach { sourceSet ->
+                            sourceSet.java.srcDir("build/generated/source/deeplink-builder/${sourceSet.name}/")
+                            inputDirs += path
+                        }
+
+                        inputFiles += inputDirs.listFilesByExtension("xml")
+                        outputDirectories += androidSourceSets.map {
+                            File(
+                                buildDir,
+                                "deeplink-builder/res/${it.name}"
+                            )
+                        }
+                    }
+                }
+            //tasks.getByName("processResources").dependsOn += generate
         }
-
-        //extensions.withConvention(ApplicationExtension::class) {
-        //    tasks.getByName("processResources").dependsOn += generate
-        //}
     }
 }
 
+@Suppress("SameParameterValue")
 private fun Iterable<File>.listFilesByExtension(vararg extensions: String) =
     flatMap { dir ->
         if (dir.exists()) {
@@ -48,7 +56,7 @@ private fun Iterable<File>.listFilesByExtension(vararg extensions: String) =
                 extensions.any { extension ->
                     name.endsWith(".$extension")
                 }
-            }.toList()
+            }?.toList() ?: emptyList()
         } else {
             emptyList()
         }
