@@ -107,8 +107,12 @@ abstract class GenerateTask : DefaultTask() {
                         if (uri == null) {
                             logger.error("Deeplink of Fragment \"${fqn.substringAfterLast('.')}\" has no app:uri attribute")
                         } else {
-                            println("${fqn.substringAfterLast('.')}.kt:")
+                            println("${fqn.substringAfterLast('.')}Deeplink.kt:")
                             println("package ${fqn.substringBeforeLast('.')}\n")
+                            println("import android.net.Uri")
+                            println("import androidx.navigation.NavDeepLinkRequest\n")
+                            println("object ${fqn.substringAfterLast('.')}Deeplink {")
+                            println("    @JvmStatic")
                             val args = fragment.findAll("argument", false).map { arg ->
                                 val name = requireNotNull(arg.attributes.getNamedItem("android:name")?.nodeValue) { "Argument has no android:name" }
                                 val rawType = arg.attributes.getNamedItem("app:argType")?.nodeValue
@@ -134,7 +138,7 @@ abstract class GenerateTask : DefaultTask() {
                                 if (defaultValue != null && rawType == "string") defaultValue = "\"$defaultValue\""
                                 Argument(name, type, nullable, defaultValue)
                             }
-                            print("fun ${fqn.substringAfterLast('.')}Directions.Companion.deeplink(")
+                            print("    fun create(")
                             args.forEachIndexed { i, arg ->
                                 if(i>0) print(", ")
                                 print("${arg.name}: ${arg.type}")
@@ -149,13 +153,13 @@ abstract class GenerateTask : DefaultTask() {
                                     }
                                 }
                             }
-                            println(") = Uri.parse(\"${uri.replace("{", "\${")}\")")
-                            //println(" -> " + link.attributes.getNamedItem("app:uri")?.nodeValue)
+                            println(") = NavDeepLinkRequest.Builder.fromUri(")
+                            println("        Uri.parse(\"${uri.replace("{", "\${")}\")")
+                            println("    ).build()\n}")
                         }
                     }
                 }
             }
-            //println("Found ${deeplinks.size} deeplinks")
         }
     }
 
