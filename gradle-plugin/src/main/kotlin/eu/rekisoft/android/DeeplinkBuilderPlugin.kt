@@ -16,6 +16,7 @@ import org.w3c.dom.Element
 import org.w3c.dom.Node
 import org.w3c.dom.NodeList
 import java.io.File
+import java.lang.IllegalArgumentException
 import javax.inject.Inject
 import javax.xml.parsers.DocumentBuilderFactory
 
@@ -94,25 +95,76 @@ abstract class GenerateTask : DefaultTask() {
             val dBuilder = dbFactory.newDocumentBuilder()
             val doc = dBuilder.parse(file.inputStream())
             require(doc.documentElement.tagName == "navigation") { "${file.name} has unexpected content" }
-            val fragments = doc.documentElement.childNodes.toList().findAll("fragment")
+            val fragments = doc.documentElement.childNodes.findAll("fragment")
             logger.info("Found ${fragments.size} fragments in graph")
             fragments.forEach { fragment ->
                 val fqn = fragment.attributes.getNamedItem("android:name")?.nodeValue
                 if (fqn == null) {
                     logger.warn("Skipping fragment with missing attribute android:name")
                 } else {
-                    fragment.childNodes.toList().findAll("deepLink").forEach { link ->
+                    fragment.childNodes.findAll("deepLink").forEach { link ->
                         val uri = link.attributes.getNamedItem("app:uri")?.nodeValue
                         if (uri == null) {
                             logger.error("Deeplink of Fragment \"${fqn.substringAfterLast('.')}\" has no app:uri attribute")
+                        } else {
+                            println("${fqn.substringAfterLast('.')}.kt:")
+                            println("package ${fqn.substringBeforeLast('.')}\n")
+                            val args = fragment.findAll("argument", false).map { arg ->
+                                val name = requireNotNull(arg.attributes.getNamedItem("android:name")?.nodeValue) { "Argument has no android:name" }
+                                val rawType = arg.attributes.getNamedItem("app:argType")?.nodeValue
+                                val type = when(rawType) {
+                                    null -> throw IllegalArgumentException("Argument has no app:argType")
+                                    "integer" -> "Int"
+                                    "string" -> "String"
+                                    "float" -> "Float"
+                                    "long" -> "Long"
+                                    "boolean" -> "Boolean"
+                                    "reference" -> "Int"
+                                    // TODO array types
+                                    else -> {
+                                        val clazz = Class.forName(rawType)
+                                        when {
+                                            clazz.isEnum -> rawType
+                                            else -> throw IllegalArgumentException("Type \"$rawType\" is not supported")
+                                        }
+                                    }
+                                }
+                                var defaultValue = arg.attributes.getNamedItem("android:defaultValue")?.nodeValue
+                                val nullable = arg.attributes.getNamedItem("app:nullable")?.nodeValue == "true"
+                                if (defaultValue != null && rawType == "string") defaultValue = "\"$defaultValue\""
+                                Argument(name, type, nullable, defaultValue)
+                            }
+                            print("fun ${fqn.substringAfterLast('.')}Directions.Companion.deeplink(")
+                            args.forEachIndexed { i, arg ->
+                                if(i>0) print(", ")
+                                print("${arg.name}: ${arg.type}")
+                                if(arg.nullable) {
+                                    print("?")
+                                }
+                                arg.defaultValue?.let { value ->
+                                    if(value == "@null" && arg.nullable) {
+                                        print(" = null")
+                                    } else {
+                                        print(" = ${arg.defaultValue}")
+                                    }
+                                }
+                            }
+                            println(") = Uri.parse(\"${uri.replace("{", "\${")}\")")
+                            //println(" -> " + link.attributes.getNamedItem("app:uri")?.nodeValue)
                         }
-                        //println(" -> " + link.attributes.getNamedItem("app:uri")?.nodeValue)
                     }
                 }
             }
             //println("Found ${deeplinks.size} deeplinks")
         }
     }
+
+    private data class Argument(
+        val name: String,
+        val type: String,
+        val nullable: Boolean,
+        val defaultValue: String?
+    )
 
     private fun NodeList.toList(): List<Node> {
         val result = mutableListOf<Node>()
@@ -123,11 +175,17 @@ abstract class GenerateTask : DefaultTask() {
         return result
     }
 
-    private fun List<Node>.findAll(tag: String): List<Element> =
+    private fun NodeList.findAll(tag: String, searchRecursive: Boolean = true): List<Element> = toList().findAll(tag, searchRecursive)
+    private fun Element.findAll(tag: String, searchRecursive: Boolean = true): List<Element> = childNodes.findAll(tag, searchRecursive)
+
+    private fun List<Node>.findAll(tag: String, searchRecursive: Boolean = true): List<Element> =
         flatMap { node ->
             if (node is Element) {
-                if (node.tagName == tag) listOf(node)
-                else node.childNodes.toList().findAll(tag)
+                when {
+                    node.tagName == tag -> listOf(node)
+                    searchRecursive -> node.childNodes.toList().findAll(tag)
+                    else -> emptyList()
+                }
             } else emptyList()
         }
 }
