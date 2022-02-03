@@ -3,6 +3,7 @@ package eu.rekisoft.android
 import com.android.build.gradle.AppExtension
 import com.android.build.gradle.BaseExtension
 import com.android.build.gradle.LibraryExtension
+import com.android.build.gradle.api.BaseVariant
 import org.gradle.api.DefaultTask
 import org.gradle.api.GradleException
 import org.gradle.api.Plugin
@@ -40,8 +41,7 @@ open class DeeplinkBuilderPlugin @Inject constructor(val providerFactory: Provid
         }
     }
 
-    @Suppress("DEPRECATION") // For BaseVariant should be replaced in later studio versions
-    private fun BaseExtension.forEachVariant(action: (com.android.build.gradle.api.BaseVariant) -> Unit) {
+    private fun BaseExtension.forEachVariant(action: (BaseVariant) -> Unit) {
         when (this) {
             is AppExtension -> applicationVariants.all(action)
             is LibraryExtension -> {
@@ -55,7 +55,7 @@ open class DeeplinkBuilderPlugin @Inject constructor(val providerFactory: Provid
     }
 
     @Suppress("DEPRECATION") // For BaseVariant should be replaced in later studio versions
-    private fun Project.navigationFiles(variant: com.android.build.gradle.api.BaseVariant): ConfigurableFileCollection {
+    private fun Project.navigationFiles(variant: BaseVariant): ConfigurableFileCollection {
         val fileProvider = providerFactory.provider {
             variant.sourceSets
                 .flatMap { it.resDirectories }
@@ -88,7 +88,7 @@ abstract class GenerateTask : DefaultTask() {
         if (outputDirFile.exists() && !outputDirFile.deleteRecursively()) {
             logger.warn("Failed to clear directory for deeplink builder")
         }
-        logger.info("Processing ${inputFiles.from.size} files... ${inputFiles.joinToString()}")
+        logger.info("Processing ${inputFiles.from.size} files...")
         inputFiles.forEach { file ->
             val dbFactory = DocumentBuilderFactory.newInstance()
             val dBuilder = dbFactory.newDocumentBuilder()
@@ -96,15 +96,21 @@ abstract class GenerateTask : DefaultTask() {
             require(doc.documentElement.tagName == "navigation") { "${file.name} has unexpected content" }
             val fragments = doc.documentElement.childNodes.toList().findAll("fragment")
             logger.info("Found ${fragments.size} fragments in graph")
-            val deeplinks = fragments.flatMap { fragment ->
-                println(fragment.attributes.getNamedItem("android:name").nodeValue)
-                fragment.childNodes.toList().findAll("deepLink").also {
-                    it.forEach { link ->
-                        println(" -> " + link.attributes.getNamedItem("app:uri")?.nodeValue)
+            fragments.forEach { fragment ->
+                val fqn = fragment.attributes.getNamedItem("android:name")?.nodeValue
+                if (fqn == null) {
+                    logger.warn("Skipping fragment with missing attribute android:name")
+                } else {
+                    fragment.childNodes.toList().findAll("deepLink").forEach { link ->
+                        val uri = link.attributes.getNamedItem("app:uri")?.nodeValue
+                        if (uri == null) {
+                            logger.error("Deeplink of Fragment \"${fqn.substringAfterLast('.')}\" has no app:uri attribute")
+                        }
+                        //println(" -> " + link.attributes.getNamedItem("app:uri")?.nodeValue)
                     }
                 }
             }
-            println("Found ${deeplinks.size} deeplinks")
+            //println("Found ${deeplinks.size} deeplinks")
         }
     }
 
