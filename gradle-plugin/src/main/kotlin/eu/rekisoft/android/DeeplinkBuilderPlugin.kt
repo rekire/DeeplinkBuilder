@@ -1,98 +1,127 @@
 package eu.rekisoft.android
 
-import com.android.build.api.dsl.ApplicationExtension
+import com.android.build.gradle.AppExtension
+import com.android.build.gradle.BaseExtension
+import com.android.build.gradle.LibraryExtension
 import org.gradle.api.DefaultTask
+import org.gradle.api.GradleException
 import org.gradle.api.Plugin
 import org.gradle.api.Project
+import org.gradle.api.file.ConfigurableFileCollection
+import org.gradle.api.file.DirectoryProperty
+import org.gradle.api.provider.ProviderFactory
 import org.gradle.api.tasks.*
-import org.gradle.internal.operations.DefaultBuildOperationIdFactory
-import org.gradle.internal.time.Time
-import org.gradle.kotlin.dsl.the
-import org.gradle.tooling.internal.consumer.SynchronizedLogging
-import org.slf4j.LoggerFactory
+import org.w3c.dom.Element
+import org.w3c.dom.Node
+import org.w3c.dom.NodeList
 import java.io.File
+import javax.inject.Inject
+import javax.xml.parsers.DocumentBuilderFactory
 
-open class DeeplinkBuilderPlugin : Plugin<Project> {
-    @Suppress("UnstableApiUsage")
-    override fun apply(project: Project): Unit = with(project) {
+open class DeeplinkBuilderPlugin @Inject constructor(val providerFactory: ProviderFactory) : Plugin<Project> {
 
+    override fun apply(project: Project) {
+        project.pluginManager.withPlugin("com.android.application") {
+            project.extensions.getByType(BaseExtension::class.java).forEachVariant { variant ->
+                val task = project.tasks.register(
+                    "generate${variant.name.capitalize()}Deeplinks",
+                    GenerateTask::class.java
+                ) {
+                    it.inputFiles.setFrom(project.navigationFiles(variant))
+                    it.outputDir.set(
+                        File(
+                            project.buildDir,
+                            "generated/source/deeplink-builder/${variant.dirName}"
+                        )
+                    )
+                }
+                project.tasks.getByName("generate${variant.name.capitalize()}Sources").dependsOn += task
+            }
+        }
+    }
 
-        pluginManager.withPlugin("com.android.application") {
-            val app = project.the<ApplicationExtension>()
-            val buildTypes = app.buildTypes.map { it.name }
+    @Suppress("DEPRECATION") // For BaseVariant should be replaced in later studio versions
+    private fun BaseExtension.forEachVariant(action: (com.android.build.gradle.api.BaseVariant) -> Unit) {
+        when (this) {
+            is AppExtension -> applicationVariants.all(action)
+            is LibraryExtension -> {
+                libraryVariants.all(action)
+            }
+            else -> throw GradleException(
+                "safeargs plugin must be used with android app," +
+                        "library or feature plugin"
+            )
+        }
+    }
 
-            app
-                .sourceSets
-                .map { it.name to File(projectDir, "src/${it.name}/res/navigation") }
-                .filter { it.second.exists() }
-                .forEach { (name, path) ->
-                    val task = tasks.register("generate${name.capitalize()}Deeplinks", GenerateTask::class.java) {
-                        val androidSourceSets = project.the<ApplicationExtension>().sourceSets
-                        val inputDirs = mutableListOf<File>()
-                        androidSourceSets.forEach { sourceSet ->
-                            sourceSet.java.srcDir("build/generated/source/deeplink-builder/${sourceSet.name}/")
-                            inputDirs += path
-                        }
-
-                        inputFiles += inputDirs.listFilesByExtension("xml")
-                        outputDirectories += androidSourceSets.map {
-                            File(
-                                buildDir,
-                                "deeplink-builder/res/${it.name}"
-                            )
-                        }
+    @Suppress("DEPRECATION") // For BaseVariant should be replaced in later studio versions
+    private fun Project.navigationFiles(variant: com.android.build.gradle.api.BaseVariant): ConfigurableFileCollection {
+        val fileProvider = providerFactory.provider {
+            variant.sourceSets
+                .flatMap { it.resDirectories }
+                .mapNotNull {
+                    File(it, "navigation").let { navFolder ->
+                        if (navFolder.exists() && navFolder.isDirectory) navFolder else null
                     }
                 }
-            //tasks.getByName("processResources").dependsOn += generate
+                .flatMap { navFolder -> navFolder.listFiles()?.asIterable() ?: emptyList() }
+                .filter { file -> file.isFile }
+                .groupBy { file -> file.name }
+                .map { entry -> entry.value.last() }
         }
+        return files(fileProvider)
     }
 }
 
-@Suppress("SameParameterValue")
-private fun Iterable<File>.listFilesByExtension(vararg extensions: String) =
-    flatMap { dir ->
-        if (dir.exists()) {
-            dir.listFiles { _, name ->
-                extensions.any { extension ->
-                    name.endsWith(".$extension")
-                }
-            }?.toList() ?: emptyList()
-        } else {
-            emptyList()
-        }
-    }
-
 @CacheableTask
-open class GenerateTask : DefaultTask() {
+abstract class GenerateTask : DefaultTask() {
+    @get:PathSensitive(PathSensitivity.ABSOLUTE)
+    @get:InputFiles
+    abstract val inputFiles: ConfigurableFileCollection
 
-    private val progressLoggerFactory = SynchronizedLogging(Time.clock(), DefaultBuildOperationIdFactory()).progressLoggerFactory
-    private val LOGGER = LoggerFactory.getLogger(GenerateTask::class.java)
-
-    @InputFiles
-    @PathSensitive(value = PathSensitivity.NONE)
-    val inputFiles = mutableListOf<File>()
-
-    @OutputDirectories
-    val outputDirectories = mutableListOf<File>()
+    @get:OutputDirectory
+    abstract val outputDir: DirectoryProperty
 
     @TaskAction
     fun generate() {
-        val op = progressLoggerFactory.newOperation(GenerateTask::class.java)
-        //op.loggingHeader = "header"
-        op.description = "description"
-        //org.gradle.api.logging.Logger().lifecycle("blah")
-        //op.setShortDescription("description")
-        //val foo = op.start("description", "description")
-        LOGGER.info("Processing ${inputFiles.size} files... ${inputFiles.joinToString()}")
-        op.started()
-        inputFiles.forEach { file ->
-            Thread.sleep(5000)
-            op.progress("${op.description}: ${file.path}")
-            LOGGER.debug("${op.description}: ${file.path}")
-            val start = file.path.indexOf("src" + File.separator) + 4
-            val end = file.path.indexOf(File.separatorChar, start)
-            val sourceSet = file.path.substring(start, end)
+        val outputDirFile = outputDir.asFile.get()
+        if (outputDirFile.exists() && !outputDirFile.deleteRecursively()) {
+            logger.warn("Failed to clear directory for deeplink builder")
         }
-        op.completed()
+        logger.info("Processing ${inputFiles.from.size} files... ${inputFiles.joinToString()}")
+        inputFiles.forEach { file ->
+            val dbFactory = DocumentBuilderFactory.newInstance()
+            val dBuilder = dbFactory.newDocumentBuilder()
+            val doc = dBuilder.parse(file.inputStream())
+            require(doc.documentElement.tagName == "navigation") { "${file.name} has unexpected content" }
+            val fragments = doc.documentElement.childNodes.toList().findAll("fragment")
+            logger.info("Found ${fragments.size} fragments in graph")
+            val deeplinks = fragments.flatMap { fragment ->
+                println(fragment.attributes.getNamedItem("android:name").nodeValue)
+                fragment.childNodes.toList().findAll("deepLink").also {
+                    it.forEach { link ->
+                        println(" -> " + link.attributes.getNamedItem("app:uri")?.nodeValue)
+                    }
+                }
+            }
+            println("Found ${deeplinks.size} deeplinks")
+        }
     }
+
+    private fun NodeList.toList(): List<Node> {
+        val result = mutableListOf<Node>()
+        if (length == 0) return result
+        for (i in 0 until length) {
+            result.add(item(i))
+        }
+        return result
+    }
+
+    private fun List<Node>.findAll(tag: String): List<Element> =
+        flatMap { node ->
+            if (node is Element) {
+                if (node.tagName == tag) listOf(node)
+                else node.childNodes.toList().findAll(tag)
+            } else emptyList()
+        }
 }

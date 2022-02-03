@@ -23,6 +23,7 @@
                     android:name="name"
                     app:argType="string"/>
             </action>
+            <deepLink app:uri="sample://home/"/>
         </fragment>
 
         <fragment
@@ -57,6 +58,7 @@
             <argument
                 android:name="name"
                 app:argType="string"/>
+            <deepLink app:uri="sample://shelf/{name}/" />
         </fragment>
     </navigation>
 </navigation>

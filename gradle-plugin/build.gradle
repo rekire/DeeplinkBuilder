@@ -2,7 +2,6 @@ plugins {
     id 'maven-publish'
     id 'java-gradle-plugin'
     id 'com.gradle.plugin-publish' version '0.10.0'
-    id "org.gradle.kotlin.kotlin-dsl" version "2.2.0"
 }
 
 apply plugin: 'kotlin'
@@ -30,7 +29,7 @@ dependencies {
     implementation(gradleApi())
     implementation(localGroovy())
     api "org.jetbrains.kotlin:kotlin-stdlib"
-    compileOnly 'com.android.tools.build:gradle-api:7.1.0'
+    compileOnly 'com.android.tools.build:gradle:7.1.0'
 }
 
 pluginBundle {
