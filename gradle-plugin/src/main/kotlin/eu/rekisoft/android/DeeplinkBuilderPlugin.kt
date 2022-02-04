@@ -102,8 +102,16 @@ abstract class GenerateTask : DefaultTask() {
                     logger.warn("Skipping fragment with missing attribute android:name")
                 } else {
                     fragment.childNodes.findAll("deepLink").forEach { link ->
-                        println("${fqn.substringAfterLast('.')}Deeplink.kt:")
-                        print(generateCode(fqn, fragment, link))
+                        generateCode(fqn, fragment, link)?.let { code ->
+                            val codeFile = File(
+                                outputDirFile,
+                                fqn.replace(".", File.separator) + "Deeplink.kt"
+                            )
+                            codeFile.parentFile.mkdirs()
+                            codeFile.outputStream().use { fos ->
+                                fos.write(code.toByteArray())
+                            }
+                        }
                     }
                 }
             }
@@ -117,9 +125,9 @@ abstract class GenerateTask : DefaultTask() {
             null
         } else {
             val sb = StringBuilder()
-            sb.appendLine("package ${fqn.substringBeforeLast('.')}\n")
+            sb.appendLine("package ${fqn.substringBeforeLast('.')}").appendLine()
             sb.appendLine("import android.net.Uri")
-            sb.appendLine("import androidx.navigation.NavDeepLinkRequest\n")
+            sb.appendLine("import androidx.navigation.NavDeepLinkRequest").appendLine()
             sb.appendLine("object ${fqn.substringAfterLast('.')}Deeplink {")
             sb.appendLine("    @JvmStatic")
             val args = parseArguments(fragment)
@@ -140,7 +148,8 @@ abstract class GenerateTask : DefaultTask() {
             }
             sb.appendLine(") = NavDeepLinkRequest.Builder.fromUri(")
             sb.appendLine("        Uri.parse(\"${uri.replace("{", "\${")}\")")
-            sb.appendLine("    ).build()\n}")
+            sb.appendLine("    ).build()")
+            sb.append("}")
             sb.toString()
         }
     }
