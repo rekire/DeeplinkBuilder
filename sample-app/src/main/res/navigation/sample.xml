@@ -11,7 +11,7 @@
         app:startDestination="@id/frag_home">
         <fragment
             android:id="@+id/frag_home"
-            android:name="eu.rekisoft.android.navbug.HomeFragment"
+            android:name="eu.rekisoft.android.deeplink.HomeFragment"
             tools:layout="@layout/fragment_home">
             <action
                 android:id="@+id/cause_bug"
@@ -23,12 +23,12 @@
                     android:name="name"
                     app:argType="string"/>
             </action>
-            <deepLink app:uri="sample://home/"/>
+            <deepLink app:uri="eu.rekisoft.android.deeplink://home/"/>
         </fragment>
 
         <fragment
             android:id="@+id/frag_hint"
-            android:name="eu.rekisoft.android.navbug.HintFragment"
+            android:name="eu.rekisoft.android.deeplink.HintFragment"
             android:label="Hint"
             tools:layout="@layout/fragment_hint"/>
     </navigation>
@@ -38,7 +38,7 @@
         app:startDestination="@id/frag_shelf">
         <fragment
             android:id="@+id/frag_shelf"
-            android:name="eu.rekisoft.android.navbug.ShelfFragment"
+            android:name="eu.rekisoft.android.deeplink.ShelfFragment"
             android:label="Shelf Fragment"
             tools:layout="@layout/fragment_shelf">
             <action
@@ -52,13 +52,13 @@
 
         <fragment
             android:id="@+id/frag_book"
-            android:name="eu.rekisoft.android.navbug.BookFragment"
+            android:name="eu.rekisoft.android.deeplink.BookFragment"
             android:label="Book Fragment"
             tools:layout="@layout/fragment_book">
             <argument
                 android:name="name"
                 app:argType="string"/>
-            <deepLink app:uri="sample://shelf/{name}/" />
+            <deepLink app:uri="eu.rekisoft.android.deeplink://shelf/{name}/" />
         </fragment>
     </navigation>
 </navigation>

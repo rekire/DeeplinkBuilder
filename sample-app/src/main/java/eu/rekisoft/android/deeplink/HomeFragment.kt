@@ -1,4 +1,4 @@
-package eu.rekisoft.android.navbug
+package eu.rekisoft.android.deeplink
 
 import android.os.Bundle
 import androidx.fragment.app.Fragment
@@ -6,7 +6,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.navigation.fragment.findNavController
-import eu.rekisoft.android.navbug.databinding.FragmentHomeBinding
+import eu.rekisoft.android.deeplink.databinding.FragmentHomeBinding
 
 class HomeFragment : Fragment() {
     override fun onCreateView(

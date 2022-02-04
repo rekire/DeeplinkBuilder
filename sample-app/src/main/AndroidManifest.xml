@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="eu.rekisoft.android.navbug">
+    package="eu.rekisoft.android.deeplink">
 
     <application
         android:allowBackup="false"
@@ -10,7 +10,7 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.NavigationBug">
         <activity
-            android:name=".MainActivity"
+            android:name="eu.rekisoft.android.deeplink.MainActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
