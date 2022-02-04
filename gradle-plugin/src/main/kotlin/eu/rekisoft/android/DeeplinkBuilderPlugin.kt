@@ -53,8 +53,7 @@ open class DeeplinkBuilderPlugin @Inject constructor(
                 libraryVariants.all(action)
             }
             else -> throw GradleException(
-                "safeargs plugin must be used with android app," +
-                        "library or feature plugin"
+                "deeplink builder plugin must be used with android app, library or feature plugin"
             )
         }
     }
