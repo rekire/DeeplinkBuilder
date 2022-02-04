@@ -20,12 +20,15 @@ import java.lang.IllegalArgumentException
 import javax.inject.Inject
 import javax.xml.parsers.DocumentBuilderFactory
 
-open class DeeplinkBuilderPlugin @Inject constructor(val providerFactory: ProviderFactory) : Plugin<Project> {
+open class DeeplinkBuilderPlugin @Inject constructor(
+    private val providerFactory: ProviderFactory
+    ) : Plugin<Project> {
+
     override fun apply(project: Project) {
         project.pluginManager.withPlugin("com.android.application") {
             project.extensions.getByType(BaseExtension::class.java).forEachVariant { variant ->
                 val task = project.tasks.register(
-                    "generate${variant.name.capitalize()}Deeplinks",
+                    "generate${variant.capitalizedName()}Deeplinks",
                     GenerateTask::class.java
                 ) {
                     it.inputFiles.setFrom(project.navigationFiles(variant))
@@ -36,11 +39,12 @@ open class DeeplinkBuilderPlugin @Inject constructor(val providerFactory: Provid
                         )
                     )
                 }
-                project.tasks.getByName("generate${variant.name.capitalize()}Sources").dependsOn += task
+                project.tasks.getByName("generate${variant.capitalizedName()}Sources").dependsOn += task
             }
         }
     }
 
+    @Suppress("DEPRECATION") // For BaseVariant should be replaced in later studio versions
     private fun BaseExtension.forEachVariant(action: (BaseVariant) -> Unit) {
         when (this) {
             is AppExtension -> applicationVariants.all(action)
@@ -71,6 +75,9 @@ open class DeeplinkBuilderPlugin @Inject constructor(val providerFactory: Provid
         }
         return files(fileProvider)
     }
+
+    @Suppress("DEPRECATION") // For BaseVariant should be replaced in later studio versions
+    private fun BaseVariant.capitalizedName() = Character.toUpperCase(name[0]) + name.substring(1)
 }
 
 @CacheableTask
