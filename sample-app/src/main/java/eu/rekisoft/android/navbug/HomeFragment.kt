@@ -19,7 +19,7 @@ class HomeFragment : Fragment() {
                 findNavController().navigate(HomeFragmentDirections.causeBug())
             }
             button2.setOnClickListener {
-                findNavController().navigate(HomeFragmentDirections.causeCrash("Let me crash"))
+                findNavController().navigate(BookFragmentDeeplink.create("example"))
             }
         }
     }

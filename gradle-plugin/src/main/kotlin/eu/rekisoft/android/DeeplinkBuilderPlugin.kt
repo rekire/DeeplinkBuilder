@@ -27,19 +27,20 @@ open class DeeplinkBuilderPlugin @Inject constructor(
     override fun apply(project: Project) {
         project.pluginManager.withPlugin("com.android.application") {
             project.extensions.getByType(BaseExtension::class.java).forEachVariant { variant ->
+                val generatedCodeDir = File(
+                    project.buildDir,
+                    "generated/source/deeplink-builder/${variant.dirName}"
+                )
                 val task = project.tasks.register(
                     "generate${variant.capitalizedName()}Deeplinks",
                     GenerateTask::class.java
                 ) {
                     it.inputFiles.setFrom(project.navigationFiles(variant))
-                    it.outputDir.set(
-                        File(
-                            project.buildDir,
-                            "generated/source/deeplink-builder/${variant.dirName}"
-                        )
-                    )
+                    it.outputDir.set(generatedCodeDir)
                 }
                 project.tasks.getByName("generate${variant.capitalizedName()}Sources").dependsOn += task
+                @Suppress("DEPRECATION") // For BaseVariant should be replaced in later studio versions
+                variant.registerJavaGeneratingTask(task, generatedCodeDir)
             }
         }
     }
