@@ -108,8 +108,9 @@ abstract class GenerateTask : DefaultTask() {
                 if (fqn == null) {
                     logger.warn("Skipping fragment with missing attribute android:name")
                 } else {
-                    fragment.childNodes.findAll("deepLink").forEach { link ->
-                        generateCode(fqn, fragment, link)?.let { code ->
+                    val links = fragment.childNodes.findAll("deepLink")
+                    if (links.isNotEmpty()) {
+                        generateCode(fqn, fragment, links)?.let { code ->
                             val codeFile = File(
                                 outputDirFile,
                                 fqn.replace(".", File.separator) + "Deeplink.kt"
@@ -125,9 +126,13 @@ abstract class GenerateTask : DefaultTask() {
         }
     }
 
-    private fun generateCode(fqn: String, fragment: Element, link: Element): String? {
-        val uri = link.attributes.getNamedItem("app:uri")?.nodeValue
-        return if (uri == null) {
+    private fun generateCode(fqn: String, fragment: Element, links: List<Element>): String? {
+        val uris = links.map {
+            val uri = it.attributes.getNamedItem("app:uri")?.nodeValue
+            val id = it.attributes.getNamedItem("android:id")?.nodeValue
+            uri to id
+        }
+        return if(uris.size == 1 && uris.first().first == null) {
             logger.error("Deeplink of Fragment \"${fqn.substringAfterLast('.')}\" has no app:uri attribute")
             null
         } else {
@@ -136,26 +141,37 @@ abstract class GenerateTask : DefaultTask() {
             sb.appendLine("import android.net.Uri")
             sb.appendLine("import androidx.navigation.NavDeepLinkRequest").appendLine()
             sb.appendLine("object ${fqn.substringAfterLast('.')}Deeplink {")
-            sb.appendLine("    @JvmStatic")
-            val args = parseArguments(fragment)
-            sb.append("    fun create(")
-            args.forEachIndexed { i, arg ->
-                if (i > 0) print(", ")
-                sb.append("${arg.name}: ${arg.type}")
-                if (arg.nullable) {
-                    sb.append("?")
-                }
-                arg.defaultValue?.let { value ->
-                    if (value == "@null" && arg.nullable) {
-                        sb.append(" = null")
-                    } else {
-                        sb.append(" = ${arg.defaultValue}")
+            var withoutIdCount = 0
+            uris.forEachIndexed { i, (uri, id) ->
+                if (i > 0) sb.appendLine()
+                if (id == null) withoutIdCount++
+                if (uri == null && id != null) {
+                    logger.warn("Skipping deeplink of Fragment \"${fqn.substringAfterLast('.')}\" with id \"$id\" has no app:uri attribute")
+                } else if (withoutIdCount > 1) {
+                    logger.warn("Skipping deeplink \"$uri\" of Fragment \"${fqn.substringAfterLast('.')}\" with no android:id attribute")
+                } else {
+                    sb.appendLine("    @JvmStatic")
+                    val args = parseArguments(fragment)
+                    sb.append("    fun ${id?.substringAfterLast("/") ?: "create"}(")
+                    args.forEachIndexed { j, arg ->
+                        if (j > 0) print(", ")
+                        sb.append("${arg.name}: ${arg.type}")
+                        if (arg.nullable) {
+                            sb.append("?")
+                        }
+                        arg.defaultValue?.let { value ->
+                            if (value == "@null" && arg.nullable) {
+                                sb.append(" = null")
+                            } else {
+                                sb.append(" = ${arg.defaultValue}")
+                            }
+                        }
                     }
+                    sb.appendLine(") = NavDeepLinkRequest.Builder.fromUri(")
+                    sb.appendLine("        Uri.parse(\"${uri?.replace("{", "\${")}\")")
+                    sb.appendLine("    ).build()")
                 }
             }
-            sb.appendLine(") = NavDeepLinkRequest.Builder.fromUri(")
-            sb.appendLine("        Uri.parse(\"${uri.replace("{", "\${")}\")")
-            sb.appendLine("    ).build()")
             sb.append("}")
             sb.toString()
         }

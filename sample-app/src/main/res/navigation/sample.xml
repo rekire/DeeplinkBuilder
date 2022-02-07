@@ -30,7 +30,15 @@
             android:id="@+id/frag_hint"
             android:name="eu.rekisoft.android.deeplink.HintFragment"
             android:label="Hint"
-            tools:layout="@layout/fragment_hint"/>
+            tools:layout="@layout/fragment_hint">
+            <deepLink
+                android:id="@+id/deepLink"
+                app:uri="sample://foo" />
+
+            <deepLink
+                android:id="@+id/deepLink2"
+                app:uri="sample://bar" />
+        </fragment>
     </navigation>
 
     <navigation
