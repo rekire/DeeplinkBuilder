@@ -38,13 +38,20 @@ findNavController().navigate(BookFragmentDeeplink.create("example"))
 
 Currently this plugin is not yet published. Therefore you need to build it yourself for now:
 
-1. You just need to checkout this repository and execute then:
+1. You just need to checkout this repository and temporally disable the plugin usage by commenting
+out the line in `sample-app/build.gradle`:
+
+    ```groovy
+    id 'eu.rekisoft.android.deeplink-builder' version '0.1'
+    ```
+
+2. Then execute:
 
     ```shell
     ./gradlew publishToMavenLocal
     ```
 
-2. Add your local maven repository to the gradle plugin repositories in your `settings.gradle`:
+3. Add your local maven repository to the gradle plugin repositories in your `settings.gradle`:
     ```groovy
     pluginManagement {
       repositories {
@@ -55,7 +62,7 @@ Currently this plugin is not yet published. Therefore you need to build it yours
     }
     ```
 
-3. Add the plugin to your project:
+4. Add the plugin to your project:
 
     ```groovy
     plugins {
@@ -66,7 +73,7 @@ Currently this plugin is not yet published. Therefore you need to build it yours
     }
     ```
 
-4. Profit!
+5. Profit!
 
 # License
 
