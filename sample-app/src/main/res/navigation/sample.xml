@@ -31,13 +31,23 @@
             android:name="eu.rekisoft.android.deeplink.HintFragment"
             android:label="Hint"
             tools:layout="@layout/fragment_hint">
+            <argument
+                android:name="id"
+                app:argType="integer[]"
+                app:nullable="true"
+                android:defaultValue="1,2,3"/>
+            <argument
+                android:name="title"
+                app:argType="string"
+                app:nullable="true"
+                android:defaultValue="test"/>
             <deepLink
                 android:id="@+id/deepLink"
-                app:uri="sample://foo" />
+                app:uri="sample://foo/{title}" />
 
             <deepLink
                 android:id="@+id/deepLink2"
-                app:uri="sample://bar" />
+                app:uri="sample://bar?id={id}" />
         </fragment>
     </navigation>
 

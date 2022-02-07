@@ -136,44 +136,57 @@ abstract class GenerateTask : DefaultTask() {
             logger.error("Deeplink of Fragment \"${fqn.substringAfterLast('.')}\" has no app:uri attribute")
             null
         } else {
+            val args = parseArguments(fragment)
             val sb = StringBuilder()
             sb.appendLine("package ${fqn.substringBeforeLast('.')}").appendLine()
             sb.appendLine("import android.net.Uri")
             sb.appendLine("import androidx.navigation.NavDeepLinkRequest").appendLine()
             sb.appendLine("object ${fqn.substringAfterLast('.')}Deeplink {")
-            var withoutIdCount = 0
-            uris.forEachIndexed { i, (uri, id) ->
-                if (i > 0) sb.appendLine()
-                if (id == null) withoutIdCount++
-                if (uri == null && id != null) {
-                    logger.warn("Skipping deeplink of Fragment \"${fqn.substringAfterLast('.')}\" with id \"$id\" has no app:uri attribute")
-                } else if (withoutIdCount > 1) {
-                    logger.warn("Skipping deeplink \"$uri\" of Fragment \"${fqn.substringAfterLast('.')}\" with no android:id attribute")
-                } else {
-                    sb.appendLine("    @JvmStatic")
-                    val args = parseArguments(fragment)
-                    sb.append("    fun ${id?.substringAfterLast("/") ?: "create"}(")
-                    args.forEachIndexed { j, arg ->
-                        if (j > 0) print(", ")
-                        sb.append("${arg.name}: ${arg.type}")
-                        if (arg.nullable) {
-                            sb.append("?")
-                        }
-                        arg.defaultValue?.let { value ->
-                            if (value == "@null" && arg.nullable) {
-                                sb.append(" = null")
-                            } else {
-                                sb.append(" = ${arg.defaultValue}")
-                            }
-                        }
-                    }
-                    sb.appendLine(") = NavDeepLinkRequest.Builder.fromUri(")
-                    sb.appendLine("        Uri.parse(\"${uri?.replace("{", "\${")}\")")
-                    sb.appendLine("    ).build()")
-                }
-            }
+            sb.appendDeeplinks(args, fqn.substringAfterLast('.'), uris)
             sb.append("}")
             sb.toString()
+        }
+    }
+
+    private fun StringBuilder.appendDeeplinks(args: List<Argument>, fragment: String, uris: List<Pair<String?, String?>>) {
+        var withoutIdCount = 0
+        uris.forEachIndexed { i, (uri, id) ->
+            if (i > 0) appendLine()
+            if (id == null) withoutIdCount++
+            if (uri == null && id != null) {
+                logger.warn("Skipping deeplink of Fragment \"$fragment\" with id \"$id\" has no app:uri attribute")
+            } else if (withoutIdCount > 1) {
+                logger.warn("Skipping deeplink \"$uri\" of Fragment \"$fragment\" with no android:id attribute")
+            } else {
+                val funName = id?.substringAfterLast("/")?.maskIfRequired() ?: "create"
+                appendLine("    @JvmStatic")
+                append("    fun $funName(")
+                var deeplink = uri.orEmpty()
+                val usedArgs = args.filter { deeplink.contains("{${it.name}}") }
+                usedArgs.forEachIndexed { j, arg ->
+                    if (j > 0) print(", ")
+                    append("${arg.name}: ${arg.type}")
+                    if (arg.nullable) {
+                        append("?")
+                    }
+                    arg.defaultValue?.let { value ->
+                        if (value == "@null" && arg.nullable) {
+                            append(" = null")
+                        } else {
+                            append(" = ${arg.defaultValue}")
+                        }
+                    }
+                    val replacement = if(arg.type.startsWith("Iterable<")) {
+                        "\${${arg.name.maskIfRequired()}${if(arg.nullable) "?" else ""}.joinToString(\",\")}"
+                    } else {
+                        "{\$${arg.name.maskIfRequired()}}"
+                    }
+                    deeplink = deeplink.replace("{${arg.name}}", replacement)
+                }
+                appendLine(") = NavDeepLinkRequest.Builder.fromUri(")
+                appendLine("        Uri.parse(\"$deeplink\")")
+                appendLine("    ).build()")
+            }
         }
     }
 
@@ -190,7 +203,11 @@ abstract class GenerateTask : DefaultTask() {
                 "long" -> "Long"
                 "boolean" -> "Boolean"
                 "reference" -> "Int"
-                // TODO array types
+                "integer[]" -> "Iterable<Int>"
+                "string[]" -> "Iterable<String>"
+                "float[]" -> "Iterable<Float>"
+                "long[]" -> "Iterable<Long>"
+                "boolean[]" -> "Iterable<Boolean>"
                 else -> {
                     val clazz = Class.forName(rawType)
                     when {
@@ -199,12 +216,12 @@ abstract class GenerateTask : DefaultTask() {
                     }
                 }
             }
-            var defaultValue =
-                arg.attributes.getNamedItem("android:defaultValue")?.nodeValue
-            val nullable =
-                arg.attributes.getNamedItem("app:nullable")?.nodeValue == "true"
-            if (defaultValue != null && rawType == "string") {
+            var defaultValue = arg.attributes.getNamedItem("android:defaultValue")?.nodeValue
+            val nullable = arg.attributes.getNamedItem("app:nullable")?.nodeValue == "true"
+            if (defaultValue != "@null" && defaultValue != null && rawType == "string") {
                 defaultValue = "\"$defaultValue\""
+            } else if (defaultValue != "@null" && rawType.endsWith("[]")) {
+                defaultValue = "listOf(" + defaultValue?.split(",")?.joinToString().orEmpty() + ")"
             }
             Argument(name, type, nullable, defaultValue)
         }
@@ -241,4 +258,22 @@ abstract class GenerateTask : DefaultTask() {
                 }
             } else emptyList()
         }
+
+    private fun String.maskIfRequired() =
+        if (specialChars.any { contains(it) } || keywords.contains(this)) "`$this`" else this
+
+    companion object {
+        private val keywords = listOf(
+            "abstract", "actual", "annotation", "as", "break", "by", "catch", "class", "companion",
+            "const", "constructor", "continue", "crossinline", "data", "delegate", "do", "dynamic",
+            "else", "enum", "expect", "external", "false", "file", "final", "finally", "for", "fun",
+            "function", "get", "if", "import", "in", "infix", "init", "inline", "inner",
+            "interface", "internal", "is", "lateinit", "noinline", "null", "object", "open",
+            "operator", "out", "override", "package", "param", "private", "property", "protected",
+            "public", "receiver", "reified", "return", "sealed", "set", "setparam", "super",
+            "suspend", "tailrec", "this", "throw", "true", "try", "typealias", "typeof", "val",
+            "value", "var", "vararg", "when", "where", "while"
+        )
+        private val specialChars = ";-.#*+_<>|!§$%&/\\()=?~'\"@".toCharArray()
+    }
 }
