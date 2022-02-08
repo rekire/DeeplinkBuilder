@@ -1,7 +1,7 @@
 ext {
     versions = [:]
-    versions.gradle_plugin = '0.1'
-    versions.kotlin = '1.3.31'
+    versions.gradle_plugin = '1.0.0'
+    versions.kotlin = '1.6.10'
     versions.dokka = '0.9.17'
 }
 

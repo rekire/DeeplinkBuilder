@@ -1,4 +1,4 @@
-# DeeplinkBuilder
+# DeeplinkBuilder [![License: Apache 2.0][license-image]][license-url] [![Stars][star-img]][star-url]
 
 DeeplinkBuilder is a gradle plugin to fix a weakness of the navigation components of Google. When
 you have a navigation graph with sub graphs (e.g. because you use BottomNavigationBar) then you
@@ -42,7 +42,7 @@ Currently this plugin is not yet published. Therefore you need to build it yours
 out the line in `sample-app/build.gradle`:
 
     ```groovy
-    id 'eu.rekisoft.android.deeplink-builder' version '0.1'
+    id 'eu.rekisoft.android.deeplink-builder' version '1.0.0'
     ```
 
 2. Then execute:
@@ -78,3 +78,8 @@ out the line in `sample-app/build.gradle`:
 # License
 
 Apache License 2.0
+
+[license-image]: https://img.shields.io/github/license/rekire/DeeplinkBuilder
+[license-url]: ./LICENSE
+[star-img]: https://img.shields.io/github/stars/rekire/DeeplinkBuilder.svg?style=social&label=Star&maxAge=3600
+[star-url]: https://github.com/rekire/DeeplinkBuilder/stargazers

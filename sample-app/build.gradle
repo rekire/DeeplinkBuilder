@@ -2,7 +2,7 @@ plugins {
     id 'com.android.application'
     id 'kotlin-android'
     id 'androidx.navigation.safeargs.kotlin'
-    id 'eu.rekisoft.android.deeplink-builder' version '0.1'
+    id 'eu.rekisoft.android.deeplink-builder' version '1.0.0'
 }
 
 android {

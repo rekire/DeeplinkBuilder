@@ -1,7 +1,7 @@
 plugins {
-    id 'maven-publish'
     id 'java-gradle-plugin'
-    id 'com.gradle.plugin-publish' version '0.10.0'
+    id 'maven-publish'
+    id 'com.gradle.plugin-publish' version '0.18.0'
 }
 
 apply plugin: 'kotlin'
@@ -21,10 +21,6 @@ publishing {
     }
 }
 
-configurations {
-    embed
-}
-
 dependencies {
     implementation(gradleApi())
     implementation(localGroovy())
@@ -33,23 +29,17 @@ dependencies {
 }
 
 pluginBundle {
-    website = 'https://todo'
-    vcsUrl = 'https://todo'
-
-    plugins {
-        konversation {
-            displayName = 'TODO'
-            description = 'TODO'
-            tags = ['todo']
-        }
-    }
+    website = 'https://github.com/rekire/DeeplinkBuilder'
+    vcsUrl = 'https://github.com/rekire/DeeplinkBuilder.git'
+    tags = ['android', 'deeplink', 'navigation-components']
 }
 
 gradlePlugin {
     plugins {
-        konversation {
+        deeplinkBuilder {
             id = 'eu.rekisoft.android.deeplink-builder'
-            description = 'TODO'
+            displayName = 'Deeplink Builder'
+            description = 'Typesafe deeplink builder for navigation components in Android'
             implementationClass = 'eu.rekisoft.android.DeeplinkBuilderPlugin'
         }
     }
@@ -63,9 +53,4 @@ repositories {
 
 sourceSets {
     main.java.srcDirs += 'src/main/kotlin/'
-}
-
-jar {
-    dependsOn configurations.embed
-    from { configurations.embed.collect { zipTree(it) } }
 }
