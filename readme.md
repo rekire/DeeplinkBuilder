@@ -1,4 +1,4 @@
-# DeeplinkBuilder [![License: Apache 2.0][license-image]][license-url] [![Stars][star-img]][star-url]
+# DeeplinkBuilder [![License: Apache 2.0,][license-img]][license-url] [![at Gradle Plugin Portal,][gradle-img]](gradle-url) [![Stargazers at Github][star-img]][star-url]
 
 DeeplinkBuilder is a gradle plugin to fix a weakness of the navigation components of Google. When
 you have a navigation graph with sub graphs (e.g. because you use BottomNavigationBar) then you
@@ -29,57 +29,62 @@ interesting parts:
 <sup>[Jump to source](./sample-app/src/main/res/navigation/sample.xml#L53-L62)</sup>
 
 ## Usage
-```kotlin
-findNavController().navigate(BookFragmentDeeplink.create("example"))
-```
-<sup>[Jump to source](./sample-app/src/main/java/eu/rekisoft/android/deeplink/HomeFragment.kt#L22)</sup>
 
-# Setup
-
-Currently this plugin is not yet published. Therefore you need to build it yourself for now:
-
-1. You just need to checkout this repository and temporally disable the plugin usage by commenting
-out the line in `sample-app/build.gradle`:
+1. Using the [plugins DSL](https://docs.gradle.org/current/userguide/plugins.html#sec:plugins_block):
 
     ```groovy
-    id 'eu.rekisoft.android.deeplink-builder' version '1.0.0'
-    ```
-
-2. Then execute:
-
-    ```shell
-    ./gradlew publishToMavenLocal
-    ```
-
-3. Add your local maven repository to the gradle plugin repositories in your `settings.gradle`:
-    ```groovy
-    pluginManagement {
-      repositories {
-        mavenLocal() // just for plugin development
-        mavenCentral()
-        gradlePluginPortal()
-      }
+    plugins {
+      id "eu.rekisoft.android.deeplink-builder" version "1.0.0" // add this line
     }
     ```
 
-4. Add the plugin to your project:
+2. Add the plugin to your gradle module:
 
     ```groovy
     plugins {
       id 'com.android.application'
       id 'kotlin-android'
       id 'androidx.navigation.safeargs.kotlin'
-      id 'eu.rekisoft.android.deeplink-builder' version '0.1' // add this line
+      id 'eu.rekisoft.android.deeplink-builder' version '1.0.0' // add this line
     }
     ```
 
-5. Profit!
+3. Using the deeplinks in your code:
+
+    ```kotlin
+    findNavController().navigate(BookFragmentDeeplink.create("example"))
+    ```
+    <sup>[Jump to source](./sample-app/src/main/java/eu/rekisoft/android/deeplink/HomeFragment.kt#L22)</sup>  
+    When you have multiple deeplinks then its id will be used as method name. Each method has just the
+    minimal set of arguments required for building the deeplink with the default parameters as defined
+    in the xml.
+
+# Development
+
+1. You need to checkout this repository and if the version is newer as on the plugin portal temporally
+   disable the plugin usage by commenting out the line in `sample-app/build.gradle`:
+
+    ```groovy
+    id 'eu.rekisoft.android.deeplink-builder' version '1.0.0'
+    ```
+
+2. Deploy the plugin to your local maven repository:
+
+    ```shell
+    ./gradlew publishToMavenLocal
+    ```
+    
+3. Undo step 1
+4. Test your changes
+5. Create a Pull Request
 
 # License
 
 Apache License 2.0
 
-[license-image]: https://img.shields.io/github/license/rekire/DeeplinkBuilder
+[license-img]: https://img.shields.io/github/license/rekire/DeeplinkBuilder
 [license-url]: ./LICENSE
+[gradle-img]: https://img.shields.io/gradle-plugin-portal/v/eu.rekisoft.android.deeplink-builder
+[gradle-url]: https://plugins.gradle.org/plugin/eu.rekisoft.android.deeplink-builder
 [star-img]: https://img.shields.io/github/stars/rekire/DeeplinkBuilder.svg?style=social&label=Star&maxAge=3600
 [star-url]: https://github.com/rekire/DeeplinkBuilder/stargazers
