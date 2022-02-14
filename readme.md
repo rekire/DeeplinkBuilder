@@ -48,9 +48,42 @@ plugins {
 findNavController().navigate(BookFragmentDeeplink.create("example"))
 ```
 <sup>[Jump to source](./sample-app/src/main/java/eu/rekisoft/android/deeplink/HomeFragment.kt#L22)</sup>  
-When you have multiple deeplinks then its id will be used as method name. Each method has just the
-minimal set of arguments required for building the deeplink with the default parameters as defined
-in the xml.
+When your deeplink has an id then its id will be used as method name. You can also define multiple
+deeplinks, in that case starting from the second deeplink the id is required to create distinct
+methods. Each method has just the minimal set of arguments required for building the deeplink with
+the default parameters as defined in the xml.
+
+### Array-Types
+Array-Types will be embedded comma seperated in the deeplink. Comma seperated default values in the
+xml are also supported and will be set as default value.
+
+```xml
+<fragment
+    android:id="@+id/frag_hint"
+    android:name="my.package.HintFragment"
+    android:label="Hint"
+    tools:layout="@layout/fragment_hint">
+    <argument
+        android:name="id"
+        app:argType="integer[]"
+        app:nullable="true"
+        android:defaultValue="1,2,3"/>
+
+    <deepLink
+        android:id="@+id/showMultiple"
+        app:uri="sample://bar?id={id}" />
+</fragment>
+```
+
+The sample above generate this code:
+```kotlin
+object HintFragmentDeeplink {
+    @JvmStatic
+    fun showMultiple(id: Iterable<Int>? = listOf(1, 2, 3)) = NavDeepLinkRequest.Builder.fromUri(
+        Uri.parse("sample://bar?id=${id?.joinToString(",")}")
+    ).build()
+}
+```
 
 # Development
 
