@@ -30,34 +30,27 @@ interesting parts:
 
 ## Usage
 
-1. Using the [plugins DSL](https://docs.gradle.org/current/userguide/plugins.html#sec:plugins_block):
+### Add plugin
+Using the [plugins DSL](https://docs.gradle.org/current/userguide/plugins.html#sec:plugins_block):
 
-    ```groovy
-    plugins {
-      id "eu.rekisoft.android.deeplink-builder" version "1.0.0" // add this line
-    }
-    ```
+```groovy
+plugins {
+  id 'com.android.application'
+  id 'kotlin-android'
+  id 'androidx.navigation.safeargs.kotlin'
+  id 'eu.rekisoft.android.deeplink-builder' version '1.0.0' // add this line
+}
+```
 
-2. Add the plugin to your gradle module:
+### Using the deeplinks in your code
 
-    ```groovy
-    plugins {
-      id 'com.android.application'
-      id 'kotlin-android'
-      id 'androidx.navigation.safeargs.kotlin'
-      id 'eu.rekisoft.android.deeplink-builder' version '1.0.0' // add this line
-    }
-    ```
-
-3. Using the deeplinks in your code:
-
-    ```kotlin
-    findNavController().navigate(BookFragmentDeeplink.create("example"))
-    ```
-    <sup>[Jump to source](./sample-app/src/main/java/eu/rekisoft/android/deeplink/HomeFragment.kt#L22)</sup>  
-    When you have multiple deeplinks then its id will be used as method name. Each method has just the
-    minimal set of arguments required for building the deeplink with the default parameters as defined
-    in the xml.
+```kotlin
+findNavController().navigate(BookFragmentDeeplink.create("example"))
+```
+<sup>[Jump to source](./sample-app/src/main/java/eu/rekisoft/android/deeplink/HomeFragment.kt#L22)</sup>  
+When you have multiple deeplinks then its id will be used as method name. Each method has just the
+minimal set of arguments required for building the deeplink with the default parameters as defined
+in the xml.
 
 # Development
 
