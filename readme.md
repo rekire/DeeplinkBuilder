@@ -1,4 +1,4 @@
-# DeeplinkBuilder [![License: Apache 2.0,][license-img]][license-url] [![at Gradle Plugin Portal,][gradle-img]](gradle-url) [![Stargazers at Github][star-img]][star-url]
+# DeeplinkBuilder [![License: Apache 2.0,][license-img]][license-url] [![at Gradle Plugin Portal,][gradle-img]][gradle-url] [![Stargazers at Github][star-img]][star-url]
 
 DeeplinkBuilder is a gradle plugin to fix a weakness of the navigation components of Google. When
 you have a navigation graph with sub graphs (e.g. because you use BottomNavigationBar) then you
